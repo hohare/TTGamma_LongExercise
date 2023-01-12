@@ -32,10 +32,10 @@ btagWeight   shape  1.		 1.	       1.		1.	     1.	            1.
 JES          shape  1.		 1. 	       1.		1.	     1.	            1.
 JER          shape  1.		 1.	       1.		1.	     1.	            1.
 
-WGSF        rateParam  wzg  WG         1.
-ZGSF        rateParam  wzg  ZG         1.
-fakerate    rateParam  wzg  NonPrompt  1.
-rp_MisIDEle rateParam  wzg  MisID      1.
+rp_MisIDEle rateParam * MisID 1 [-10,10]
+fakerate rateParam * NonPrompt 1 [-10,10]
+WGSF  rateParam  *  WG  1 [-10,10]
+ZGSF  rateParam  *  ZG  1  [-10,10]
 
 * autoMCStats 0 1 1
 

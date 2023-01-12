@@ -32,11 +32,10 @@ JES           shape       1.          1.          1.          1.          1.    
 JER           shape       1.          1.          1.          1.          1.          1.
 lumi_2016     lnN         1.012       1.012       1.012       1.012       1.012       1.012
 
-
-fakerate rateParam binNP NonPrompt 1.
-WGSF  rateParam  binNP  WG  1
-ZGSF  rateParam  binNP  ZG  1
-rp_MisIDEle rateParam binNP MisID 1
+rp_MisIDEle rateParam * MisID 1 [-10,10]
+fakerate rateParam * NonPrompt 1 [-10,10]
+WGSF  rateParam  *  WG  1 [-10,10]
+ZGSF  rateParam  *  ZG  1  [-10,10]
 
 * autoMCStats 0 1 1
 

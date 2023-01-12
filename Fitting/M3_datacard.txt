@@ -36,7 +36,7 @@ btagWeight shape      1           1           1           1           1         
 JES shape             1           1           1           1           1           1
 JER shape             1           1           1           1           1           1
 
-WGSF        rateParam  signal  WG        1
-ZGSF        rateParam  signal  ZG        1
-fakerate    rateParam  signal  NonPrompt 1
-rp_MisIDEle rateParam  signal  MisID 1
+rp_MisIDEle rateParam * MisID 1 [-10,10]
+fakerate rateParam * NonPrompt 1 [-10,10]
+WGSF  rateParam  *  WG  1 [-10,10]
+ZGSF  rateParam  *  ZG  1  [-10,10]

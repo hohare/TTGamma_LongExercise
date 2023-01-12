@@ -37,8 +37,7 @@ lumi_2016 lnN       1.012       1.012       1.012       1.012       1.012       
 * autoMCStats 0 1 1
 
 ------------
-rp_MisIDEle rateParam MisIDEle MisID 1
-fakerate rateParam MisIDEle NonPrompt 1
-WGSF  rateParam  MisIDEle  WG  1
-ZGSF  rateParam  MisIDEle  ZG  1
-
+rp_MisIDEle rateParam * MisID 1 [-10,10]
+fakerate rateParam * NonPrompt 1 [-10,10]
+WGSF  rateParam  *  WG  1 [-10,10]
+ZGSF  rateParam  *  ZG  1  [-10,10]
