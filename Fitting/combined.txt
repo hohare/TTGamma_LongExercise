@@ -1,0 +1,49 @@
+Combination of dc_sr=M3_datacard.txt  dc_egamma=datacard_misID_ele.txt  dc_np=chIso_data_card.txt  dc_muongamma=WZGamma_data_card.txt
+imax 4 number of bins
+jmax 5 number of processes minus 1
+kmax 11 number of nuisance parameters
+----------------------------------------------------------------------------------------------------------------------------------
+shapes *             dc_egamma     ../RootFiles/MisID_Output_electron.root $PROCESS $PROCESS_$SYSTEMATIC
+shapes *             dc_muongamma  ../RootFiles/MisID_Output_muon.root $PROCESS $PROCESS_$SYSTEMATIC
+shapes *             dc_np         ../RootFiles/Isolation_Output.root $PROCESS $PROCESS_$SYSTEMATIC
+shapes *             dc_sr         ../RootFiles/M3_Output.root $PROCESS $PROCESS_$SYSTEMATIC
+----------------------------------------------------------------------------------------------------------------------------------
+bin          dc_sr         dc_egamma     dc_np         dc_muongamma
+observation  -1            -1            -1            -1          
+----------------------------------------------------------------------------------------------------------------------------------
+bin                               dc_sr         dc_sr         dc_sr         dc_sr         dc_sr         dc_sr         dc_egamma     dc_egamma     dc_egamma     dc_egamma     dc_egamma     dc_egamma     dc_np         dc_np         dc_np         dc_np         dc_np         dc_np         dc_muongamma  dc_muongamma  dc_muongamma  dc_muongamma  dc_muongamma  dc_muongamma
+process                           ttgamma       WG            MisID         ZG            NonPrompt     other         ttgamma       WG            MisID         ZG            NonPrompt     other         ttgamma       WG            MisID         ZG            NonPrompt     other         ttgamma       WG            MisID         ZG            NonPrompt     other       
+process                           0             1             2             3             4             5             0             1             2             3             4             5             0             1             2             3             4             5             0             1             2             3             4             5           
+rate                              -1            -1            -1            -1            -1            -1            -1            -1            -1            -1            -1            -1            -1            -1            -1            -1            -1            -1            -1            -1            -1            -1            -1            -1          
+----------------------------------------------------------------------------------------------------------------------------------
+FSR                     shape     1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0         
+ISR                     shape     1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0         
+JER                     shape     1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0         
+JES                     shape     1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0         
+PDF                     shape     1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0         
+Q2Scale                 shape     1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0         
+btagWeight              shape     1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0         
+eleEffWeight            shape     1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           -             -             -             -             -             -             1.0           1.0           1.0           1.0           1.0           1.0         
+lumi_2016               lnN       1.012         1.012         1.012         1.012         1.012         1.012         1.012         1.012         1.012         1.012         1.012         1.012         1.012         1.012         1.012         1.012         1.012         1.012         1.012         1.012         1.012         1.012         1.012         1.012       
+muEffWeight             shape     1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0         
+puWeight                shape     1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0           1.0         
+norm_fakerate      rateParam dc_muongamma NonPrompt 1.  
+norm_fakerate      rateParam dc_egamma NonPrompt 1  
+norm_WGSF          rateParam dc_muongamma WG 1.  
+norm_ZGSF          rateParam dc_sr ZG 1  
+norm_rp_MisIDEle   rateParam dc_egamma MisID 1  
+norm_ZGSF          rateParam dc_muongamma ZG 1.  
+norm_rp_MisIDEle   rateParam dc_np MisID 1  
+norm_WGSF          rateParam dc_sr WG 1  
+norm_WGSF          rateParam dc_egamma WG 1  
+norm_fakerate      rateParam dc_sr NonPrompt 1  
+norm_fakerate      rateParam dc_np NonPrompt 1.  
+norm_ZGSF          rateParam dc_np ZG 1  
+norm_ZGSF          rateParam dc_egamma ZG 1  
+norm_rp_MisIDEle   rateParam dc_sr MisID 1  
+norm_rp_MisIDEle   rateParam dc_muongamma MisID 1.  
+norm_WGSF          rateParam dc_np WG 1  
+dc_sr autoMCStats 0 1 1
+dc_muongamma autoMCStats 0 1 1
+dc_egamma autoMCStats 0 1 1
+dc_np autoMCStats 0 1 1
