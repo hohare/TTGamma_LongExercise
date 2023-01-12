@@ -39,6 +39,6 @@ lumi_2016 lnN       1.012       1.012       1.012       1.012       1.012       
 ------------
 rp_MisIDEle rateParam MisIDEle MisID 1
 fakerate rateParam MisIDEle NonPrompt 1
-WGSF  rateParam  bin1  WG  1
-ZGSF  rateParam  bin1  ZG  1
+WGSF  rateParam  MisIDEle  WG  1
+ZGSF  rateParam  MisIDEle  ZG  1
 
