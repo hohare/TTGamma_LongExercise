@@ -155,7 +155,7 @@ def selectElectrons(events):
 
 
 def selectPhotons(photons):
-    """Select tight and loose photons
+    """Select tight and loose photons 
 
     Returns a tuple of (tight, loose) photons
 
@@ -279,7 +279,7 @@ class TTGammaProcessor(processor.ProcessorABC):
                 systematic_axis,
             ),
 
-            # "photon_eta": hist.Hist(...),  # FIXME 3
+            # "photon_eta": hist.Hist(...),  # fixed
             "photon_eta":hist.Hist(
                 dataset_axis,
                 eta_axis,
