@@ -740,12 +740,6 @@ class TTGammaProcessor(processor.ProcessorABC):
                     weightUp=np.ones(len(events)),
                     weightDown=np.ones(len(events)),
                 )
-                weights.add(
-                    "Q2Scale",
-                    weight=np.ones(len(events)),
-                    weightUp=np.ones(len(events)),
-                    weightDown=np.ones(len(events)),
-                )
 
             # Otherwise, calculate the weights and systematic variations
             else:
@@ -770,12 +764,14 @@ class TTGammaProcessor(processor.ProcessorABC):
                 else:
                     scaleWeightSelector = []
                 LHEScaleVariation = events.LHEScaleWeight[:, scaleWeightSelector]
-                weights.add(
-                    "Q2Scale",
-                    weight=np.ones(len(events)),
-                    weightUp=ak.max(LHEScaleVariation, axis=1),
-                    weightDown=ak.min(LHEScaleVariation, axis=1),
-                )
+                if "TTGamma" in dataset:
+                    # only compute renormalization and factorization scale uncertainty for signal
+                    for i in range(6):
+                        weights.add(
+                            f"Q2Scale{i}",
+                            weight=np.ones(len(events)),
+                            weightUp=LHEScaleVariation[:, i],
+                        )
 
                 # ISR / FSR uncertainty weights
                 if not ak.all(
@@ -821,13 +817,14 @@ class TTGammaProcessor(processor.ProcessorABC):
                     "FSRDown",
                     "PDFUp",
                     "PDFDown",
-                    "Q2ScaleUp",
-                    "Q2ScaleDown",
                     "puWeightUp",
                     "puWeightDown",
                     "btagWeightUp",
                     "btagWeightDown",
                 ]
+                if "TTGamma" in dataset:
+                    systList += [f"Q2Scale{i}Up" for i in range(6)]
+
             else:
                 # if we are currently processing a shift systematic, we don't need to process any of the weight systematics
                 # since those are handled in the "nominal" run

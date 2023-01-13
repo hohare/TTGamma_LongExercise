@@ -68,6 +68,8 @@ groupingMCDatasets = {
         "TTGamma_Hadronic",
     ],
 }
+
+renorm_fact_scale_total = np.array([1.28623179, 1.2127664 , 1.0606851 , 0.94312969, 0.83927955, 0.79149344])
     
 s = hist.tag.Slicer()
 
@@ -104,7 +106,7 @@ if __name__ == "__main__":
 
     outputFile["data_obs"] = hData
 
-    systematics = h.axes["systematic"]
+    systematics = [s for s in h.axes["systematic"] if not s.startswith("Q2Scale")]
 
     for _category in ["MisID", "NonPrompt"]:
         for _systematic in systematics:
@@ -115,6 +117,20 @@ if __name__ == "__main__":
         for _systematic in systematics:
             histname = f"{_dataset}_{_systematic}" if (not f"{_systematic}" == 'nominal') else f"{_dataset}"
             outputFile[histname] = h[{'dataset':_dataset,'category':'Prompt','systematic':_systematic}]
+
+    # isolate acceptance effect and compute the max of the variations
+    # TODO: this should be done also for other channels
+    hnom = h[{"dataset": "ttgamma", "category": "Prompt", "systematic": "nominal"}]
+    hscale = h[{
+        'dataset': "ttgamma",
+        'category': 'Prompt',
+        'systematic': [f'Q2Scale{i}Up' for i in range(6)],
+    }]
+    hscale.values()[:] /= renorm_fact_scale_total
+    hnom.values()[:] = hscale.values().max(axis=1)
+    outputFile["ttgamma_Q2ScaleUp"] = hnom
+    hnom.values()[:] = hscale.values().min(axis=1)
+    outputFile["ttgamma_Q2ScaleDown"] = hnom
 
     outputFile.close()
 
