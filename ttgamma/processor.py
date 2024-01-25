@@ -12,6 +12,7 @@ import pickle
 import re
 
 import awkward as ak
+import dask_awkward as dak
 import numpy as np
 
 from .scalefactors import (
@@ -256,23 +257,23 @@ class TTGammaProcessor(processor.ProcessorABC):
         
         self.make_output = lambda: { 
             # Test histogram; not needed for final analysis but useful to check things are working
-            "all_photon_pt": hist.Hist(pt_axis, storage="weight"),
+            "all_photon_pt": hist.dask.Hist(pt_axis, storage="weight"),
             ## book histograms for photon pt, eta, and charged hadron isolation
-            "photon_pt": hist.Hist(
+            "photon_pt": hist.dask.Hist(
                 pt_axis,
                 phoCategory_axis,
                 lep_axis,
                 systematic_axis,
                 storage="weight",
             ),
-            "photon_eta": hist.Hist(
+            "photon_eta": hist.dask.Hist(
                 eta_axis,
                 phoCategory_axis,
                 lep_axis,
                 systematic_axis,
                 storage="weight",
             ),
-            "photon_chIso": hist.Hist(
+            "photon_chIso": hist.dask.Hist(
                 chIso_axis,
                 phoCategory_axis,
                 lep_axis,
@@ -280,7 +281,7 @@ class TTGammaProcessor(processor.ProcessorABC):
                 storage="weight",
             ),
             ## book histogram for photon/lepton mass in a 3j0t region
-            "photon_lepton_mass_3j0t": hist.Hist(
+            "photon_lepton_mass_3j0t": hist.dask.Hist(
                 mass_axis,
                 phoCategory_axis,
                 lep_axis,
@@ -288,7 +289,7 @@ class TTGammaProcessor(processor.ProcessorABC):
                 storage="weight",
             ),
             ## book histogram for M3 variable
-            "M3": hist.Hist(
+            "M3": hist.dask.Hist(
                 m3_axis,
                 phoCategory_axis,
                 lep_axis,
@@ -309,10 +310,10 @@ class TTGammaProcessor(processor.ProcessorABC):
 
         # Calculate the maximum pdgID of any of the particles in the GenPart history
         if self.isMC:
-            idx = ak.to_numpy(ak.flatten(abs(events.GenPart.pdgId)))
-            par = ak.to_numpy(ak.flatten(events.GenPart.genPartIdxMother))
-            num = ak.to_numpy(ak.num(events.GenPart.pdgId))
-            maxParentFlatten = maxHistoryPDGID(idx, par, num)
+            idx = ak.flatten(abs(events.GenPart.pdgId))
+            par = ak.flatten(events.GenPart.genPartIdxMother)
+            num = ak.num(events.GenPart.pdgId)
+            maxParentFlatten = dak.map_partitions(maxHistoryPDGID, idx, par, num)
             events["GenPart", "maxParent"] = ak.unflatten(maxParentFlatten, num)
 
         
@@ -321,11 +322,13 @@ class TTGammaProcessor(processor.ProcessorABC):
             # Jet energy systematics 
             shift_systs += ["JESUp", "JESDown", "JERUp", "JERDown"]
 
-        return processor.accumulate(self.process_shift(events, name) for name in shift_systs)
-
-    def process_shift(self, events, shift_syst=None):
-        dataset = events.metadata["dataset"]
         output = self.make_output()
+        for name in shift_systs:
+            self.process_shift(events, name, output)
+        return output
+
+    def process_shift(self, events, shift_syst, output):
+        dataset = events.metadata["dataset"]
 
         # Fill temp hist for testing purposes
         # Feel free to comment this out and copy-paste it to later in the code to check histgrams
@@ -356,7 +359,7 @@ class TTGammaProcessor(processor.ProcessorABC):
                 events, ptCut=15.0, etaCut=2.6, deltaRCut=0.05
             )
         else:
-            passGenOverlapRemoval = np.ones(len(events), dtype=bool)
+            passGenOverlapRemoval = ak.values_astype(ak.ones_like(events.run), bool)
 
         ##################
         # OBJECT SELECTION
@@ -400,8 +403,7 @@ class TTGammaProcessor(processor.ProcessorABC):
                 events.fixedGridRhoFastjetAll, events.Jet.pt
             )[0]
 
-            events_cache = events.caches[0]
-            corrected_jets = jet_factory.build(events.Jet, lazy_cache=events_cache)
+            corrected_jets = jet_factory.build(events.Jet)
 
             # If processing a jet systematic, we need to update the
             # jets to reflect the jet systematic uncertainty variations
@@ -523,12 +525,13 @@ class TTGammaProcessor(processor.ProcessorABC):
         selection.add("loosePho", ak.num(loosePhotons) == 1)
 
         # useful debugger for selection efficiency
-        if False and shift_syst is None:
-            print(dataset)
-            for n in selection.names:
-                print(
-                    f"- Cut {n} pass {selection.all(n).sum()} of {len(events)} events"
-                )
+        # TODO: replace with CutFlow
+        # if False and shift_syst is None:
+        #     print(dataset)
+        #     for n in selection.names:
+        #         print(
+        #             f"- Cut {n} pass {selection.all(n).sum()} of {len(events)} events"
+        #         )
 
         ##################
         # EVENT VARIABLES
@@ -571,7 +574,7 @@ class TTGammaProcessor(processor.ProcessorABC):
             phoCategory = categorizeGenPhoton(leadingPhoton)
             phoCategoryLoose = categorizeGenPhoton(leadingPhotonLoose)
         else:
-            phoCategory = np.ones(len(events), dtype="i4")
+            phoCategory = ak.ones_like(events.run)
             phoCategoryLoose = phoCategory
 
         ################
@@ -579,7 +582,7 @@ class TTGammaProcessor(processor.ProcessorABC):
         ################
 
         # create a processor Weights object, with the same length as the number of events in the chunk
-        weights = Weights(len(events))
+        weights = Weights(None)
 
         if self.isMC:
             ## Note:Lumi weighting is done in postprocessing in our workflow
@@ -692,28 +695,30 @@ class TTGammaProcessor(processor.ProcessorABC):
 
             # This section sets up some of the weight shifts related to theory uncertainties
             # in some samples, generator systematics are not available, in those case the systematic weights of 1. are used
-            if ak.mean(ak.num(events.PSWeight)) == 1:
+            ps0weightstring = "dummy PS weight (1.0) "
+            ps4weightstring = "PS weights (w_var / w_nominal); [0] is ISR=0.5 FSR=1; [1] is ISR=1 FSR=0.5; [2] is ISR=2 FSR=1; [3] is ISR=1 FSR=2 "
+            if events.PSWeight.__doc__ == ps0weightstring:
                 weights.add(
                     "ISR",
-                    weight=np.ones(len(events)),
-                    weightUp=np.ones(len(events)),
-                    weightDown=np.ones(len(events)),
+                    weight=ak.ones_like(events.Generator.weight),
+                    weightUp=ak.ones_like(events.Generator.weight),
+                    weightDown=ak.ones_like(events.Generator.weight),
                 )
                 weights.add(
                     "FSR",
-                    weight=np.ones(len(events)),
-                    weightUp=np.ones(len(events)),
-                    weightDown=np.ones(len(events)),
+                    weight=ak.ones_like(events.Generator.weight),
+                    weightUp=ak.ones_like(events.Generator.weight),
+                    weightDown=ak.ones_like(events.Generator.weight),
                 )
                 weights.add(
                     "PDF",
-                    weight=np.ones(len(events)),
-                    weightUp=np.ones(len(events)),
-                    weightDown=np.ones(len(events)),
+                    weight=ak.ones_like(events.Generator.weight),
+                    weightUp=ak.ones_like(events.Generator.weight),
+                    weightDown=ak.ones_like(events.Generator.weight),
                 )
 
             # Otherwise, calculate the weights and systematic variations
-            else:
+            elif events.PSWeight.__doc__ == ps4weightstring:
                 # PDF Uncertainty weights
                 # avoid errors from 0/0 division
                 LHEPdfWeight_0 = ak.where(
@@ -722,17 +727,21 @@ class TTGammaProcessor(processor.ProcessorABC):
                 LHEPdfVariation = events.LHEPdfWeight / LHEPdfWeight_0
                 weights.add(
                     "PDF",
-                    weight=np.ones(len(events)),
+                    weight=ak.ones_like(events.Generator.weight),
                     weightUp=ak.max(LHEPdfVariation, axis=1),
                     weightDown=ak.min(LHEPdfVariation, axis=1),
                 )
 
                 # Q2 Uncertainty weights
-                if ak.mean(ak.num(events.LHEScaleWeight)) == 9:
+                lhe9weightstring = 'LHE scale variation weights (w_var / w_nominal); [0] is mur=0.5 muf=0.5 ; [1] is mur=0.5 muf=1 ; [2] is mur=0.5 muf=2 ; [3] is mur=1 muf=0.5 ; [4] is mur=1 muf=1 ; [5] is mur=1 muf=2 ; [6] is mur=2 muf=0.5 ; [7] is mur=2 muf=1 ; [8] is mur=2 muf=2 '
+                lhe9weightstring2= 'LHE scale variation weights (w_var / w_nominal); [0] is renscfact=0.5d0 facscfact=0.5d0 ; [1] is renscfact=0.5d0 facscfact=1d0 ; [2] is renscfact=0.5d0 facscfact=2d0 ; [3] is renscfact=1d0 facscfact=0.5d0 ; [4] is renscfact=1d0 facscfact=1d0 ; [5] is renscfact=1d0 facscfact=2d0 ; [6] is renscfact=2d0 facscfact=0.5d0 ; [7] is renscfact=2d0 facscfact=1d0 ; [8] is renscfact=2d0 facscfact=2d0 '
+                lhe44weightstring = 'LHE scale variation weights (w_var / w_nominal); [0] is MUR="0.5" MUF="0.5"; [1] is MUR="0.5" MUF="0.5"; [2] is MUR="0.5" MUF="0.5"; [3] is MUR="0.5" MUF="0.5"; [4] is MUR="0.5" MUF="0.5"; [5] is MUR="0.5" MUF="1.0"; [6] is MUR="0.5" MUF="1.0"; [7] is MUR="0.5" MUF="1.0"; [8] is MUR="0.5" MUF="1.0"; [9] is MUR="0.5" MUF="1.0"; [10] is MUR="0.5" MUF="2.0"; [11] is MUR="0.5" MUF="2.0"; [12] is MUR="0.5" MUF="2.0"; [13] is MUR="0.5" MUF="2.0"; [14] is MUR="0.5" MUF="2.0"; [15] is MUR="1.0" MUF="0.5"; [16] is MUR="1.0" MUF="0.5"; [17] is MUR="1.0" MUF="0.5"; [18] is MUR="1.0" MUF="0.5"; [19] is MUR="1.0" MUF="0.5"; [20] is MUR="1.0" MUF="1.0"; [21] is MUR="1.0" MUF="1.0"; [22] is MUR="1.0" MUF="1.0"; [23] is MUR="1.0" MUF="1.0"; [24] is MUR="1.0" MUF="2.0"; [25] is MUR="1.0" MUF="2.0"; [26] is MUR="1.0" MUF="2.0"; [27] is MUR="1.0" MUF="2.0"; [28] is MUR="1.0" MUF="2.0"; [29] is MUR="2.0" MUF="0.5"; [30] is MUR="2.0" MUF="0.5"; [31] is MUR="2.0" MUF="0.5"; [32] is MUR="2.0" MUF="0.5"; [33] is MUR="2.0" MUF="0.5"; [34] is MUR="2.0" MUF="1.0"; [35] is MUR="2.0" MUF="1.0"; [36] is MUR="2.0" MUF="1.0"; [37] is MUR="2.0" MUF="1.0"; [38] is MUR="2.0" MUF="1.0"; [39] is MUR="2.0" MUF="2.0"; [40] is MUR="2.0" MUF="2.0"; [41] is MUR="2.0" MUF="2.0"; [42] is MUR="2.0" MUF="2.0"; [43] is MUR="2.0" MUF="2.0"'
+                if events.LHEScaleWeight.__doc__ in (lhe9weightstring, lhe9weightstring2):
                     scaleWeightSelector = [0, 1, 3, 5, 7, 8]
-                elif ak.mean(ak.num(events.LHEScaleWeight)) == 44:
+                elif events.LHEScaleWeight.__doc__ == lhe44weightstring:
                     scaleWeightSelector = [0, 5, 15, 24, 34, 39]
                 else:
+                    print(events.LHEScaleWeight.__doc__)
                     scaleWeightSelector = []
                 LHEScaleVariation = events.LHEScaleWeight[:, scaleWeightSelector]
 
@@ -741,7 +750,7 @@ class TTGammaProcessor(processor.ProcessorABC):
                     for i in range(6):
                         weights.add(
                             f"Q2Scale{i}",
-                            weight=np.ones(len(events)),
+                            weight=ak.ones_like(events.Generator.weight),
                             weightUp=LHEScaleVariation[:, i],
                         )
 
@@ -759,16 +768,18 @@ class TTGammaProcessor(processor.ProcessorABC):
 
                 weights.add(
                     "ISR",
-                    weight=np.ones(len(events)),
+                    weight=ak.ones_like(events.Generator.weight),
                     weightUp=psWeights[:, 2],
                     weightDown=psWeights[:, 0],
                 )
                 weights.add(
                     "FSR",
-                    weight=np.ones(len(events)),
+                    weight=ak.ones_like(events.Generator.weight),
                     weightUp=psWeights[:, 3],
                     weightDown=psWeights[:, 1],
                 )
+            else:
+                print(events.PSWeight.__doc__)
 
         ###################
         # FILL HISTOGRAMS
@@ -815,7 +826,7 @@ class TTGammaProcessor(processor.ProcessorABC):
                 weightSyst = None
 
             if syst == "noweight":
-                evtWeight = np.ones(len(events))
+                evtWeight = ak.values_astype(ak.ones_like(events.run), float)
             else:
                 # call weights.weight() with the name of the systematic to be varied
                 evtWeight = weights.weight(weightSyst)
@@ -890,8 +901,8 @@ class TTGammaProcessor(processor.ProcessorABC):
                 )
 
         if shift_syst is None:
-            output["EventCount"] = len(events)
-        return {dataset: output}
+            output["EventCount"] += ak.num(events, axis=0)
+        return output
 
     def postprocess(self, accumulator):
         return accumulator

@@ -1,9 +1,10 @@
+import awkward as ak
 import numpy as np
 import numba
 
 
 @numba.njit
-def maxHistoryPDGID(id_array, mom_array, counts):
+def _maxHistoryPDGID(id_array, mom_array, counts):
     maxPDGID_array = np.ones(len(id_array), np.int32) * -9
 
     # offset is the starting index for this event
@@ -22,3 +23,12 @@ def maxHistoryPDGID(id_array, mom_array, counts):
         offset += counts[i]
 
     return maxPDGID_array
+
+
+def maxHistoryPDGID(id_array, mom_array, counts):
+    if ak.backend(id_array) == "typetracer":
+        ak.typetracer.length_zero_if_typetracer(id_array)
+        ak.typetracer.length_zero_if_typetracer(mom_array)
+        ak.typetracer.length_zero_if_typetracer(counts)
+        return ak.Array(id_array.layout.to_typetracer(forget_length=True))
+    return _maxHistoryPDGID(id_array, mom_array, counts)
