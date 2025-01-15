@@ -94,7 +94,7 @@ def selectMuons(events):
     Loose muon requirements are already coded
     """
     muonSelectTight = (
-        (events.Muon.pt >= 30) 
+        (events.Muon.pt <= 30) 
        & (abs(events.Muon.eta) < 2.4)
        & (events.Muon.tightId)
        & (events.Muon.pfRelIso04_all < 0.15)
@@ -189,7 +189,6 @@ def selectPhotons(photons):
         & photon_PhoFull5x5SigmaIEtaIEtaCut
         & photon_NeuIsoCut
         & photon_PhoIsoCut
-        & photonID
     )
 
     # select tightPhotons, the subset of photons passing the photonSelect cut and the photonID cut
@@ -511,7 +510,7 @@ class TTGammaProcessor(processor.ProcessorABC):
         selection.add("onePho", ak.num(tightPhotons) == 1)  # FIXME 1b [Done]
 
         # add selection for events with exactly 1 loose photon
-        selection.add("loosePho", ak.num(loosePhotons) == 0)  # FIXME 1b [Done]
+        selection.add("loosePho", ak.num(loosePhotons) == 1)  # FIXME 1b [Done]
 
         # useful debugger for selection efficiency
         if False and shift_syst is None:
