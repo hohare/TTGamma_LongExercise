@@ -97,7 +97,7 @@ def selectMuons(events):
         (events.Muon.pt > 30) 
         & (abs(events.Muon.eta) < 2.4)
         & (events.Muon.tightId)
-        & (event.Muon.pfRelIso04_all < 0.15)
+        & (events.Muon.pfRelIso04_all < 0.15)
     )  # FIXME 1a
 
     muonSelectLoose = (
@@ -392,7 +392,7 @@ class TTGammaProcessor(processor.ProcessorABC):
 
             events_cache = events.caches[0]
             corrected_jets = jet_factory.build(events.Jet, lazy_cache=events_cache)
-
+            
             # If processing a jet systematic, we need to update the
             # jets to reflect the jet systematic uncertainty variations
             if shift_syst == "JERUp":
@@ -400,9 +400,9 @@ class TTGammaProcessor(processor.ProcessorABC):
             elif shift_syst == "JERDown":
                 jets = corrected_jets.JER.down
             elif shift_syst == "JESUp":
-                jets = corrected_jets.JES.up  # FIXME 4
+                jets = corrected_jets.JES_jes.up  # FIXME 4
             elif shift_syst == "JESDown":
-                jets = corrected_jets.JES.down  # FIXME 4
+                jets = corrected_jets.JES_jes.down  # FIXME 4
             else:
                 # either nominal or some shift systematic unrelated to jets
                 jets = corrected_jets
