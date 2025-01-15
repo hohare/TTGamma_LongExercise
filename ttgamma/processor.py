@@ -876,12 +876,12 @@ class TTGammaProcessor(processor.ProcessorABC):
             phosel_3j0t = { 'electron': selection.all("eleSel", "jetSel_3j0b", "onePho"),
                             'muon': selection.all("muSel", "jetSel_3j0b", "onePho")
                            }
-        
+           
+   
             for lepton in phosel_3j0t.keys():
-                if lepton=="electron":
                 
-                    output["photon_lepton_mass_3j0t"].fill(
-                        mass= egammaMass[phosel_3j0t[lepton]],
+                output["photon_lepton_mass_3j0t"].fill(
+                        mass=gammaMasses[lepton[phosel_3j0t[lepton]],
                         category=phoCategory[phosel_3j0t[lepton]],
                         lepFlavor=lepton,
                         systematic=syst,
@@ -889,14 +889,6 @@ class TTGammaProcessor(processor.ProcessorABC):
                     )
                     
                 
-                else: 
-                    output["photon_lepton_mass_3j0t"].fill(
-                    mass= mugammaMass[phosel_3j0t[lepton]],
-                    category=phoCategory[phosel_3j0t[lepton]],
-                    lepFlavor=lepton,
-                    systematic=syst,
-                    weight=evtWeight[phosel_3j0t[lepton]],
-                    )
                     
                     
                   # FIXME 3
