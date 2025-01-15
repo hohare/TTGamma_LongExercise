@@ -5,6 +5,7 @@ import hist
 from coffea.analysis_tools import PackedSelection, Weights
 from coffea.nanoevents import NanoAODSchema, NanoEventsFactory
 from coffea.nanoevents.methods import nanoaod
+import matplotlib.pyplot as plt
 
 NanoAODSchema.warn_missing_crossrefs = False
 
@@ -94,11 +95,8 @@ def selectMuons(events):
     Loose muon requirements are already coded
     """
     muonSelectTight = (
-        (events.Muon.pt <= 30) 
-       & (abs(events.Muon.eta) < 2.4)
-       & (events.Muon.tightId)
-       & (events.Muon.pfRelIso04_all < 0.15)
-    )  # FIXME 1a [Done]
+        (events.Muon.pt >= 30) & (np.abs(events.Muon.eta)<2.4) & (events.Muon.tightId) & (events.Muon.pfRelIso04_all < 0.15)
+    )  # FIXME 1a
 
     muonSelectLoose = (
         (events.Muon.pt > 15)
@@ -218,13 +216,14 @@ def categorizeGenPhoton(photon):
 
     # define the photon categories for tight photon events
     # a genuine photon is a reconstructed photon which is matched to a generator level photon, and does not have a hadronic parent
-    isGenPho = matchedPho  # FIXME 2b
+    # print(matchedPho)
+    isGenPho = (matchedPho & ~hadronicParent)  # FIXME 2b
     # a hadronic photon is a reconstructed photon which is matched to a generator level photon, but has a hadronic parent
-    isHadPho = ~matchedPho # FIXME 2b
+    isHadPho = (matchedPho & hadronicParent) # FIXME 2b
     # a misidentified electron is a reconstructed photon which is matched to a generator level electron
-    isMisIDele = ~matchedPho # FIXME 2b matchedEle and matchedPho are exclusive
+    isMisIDele = matchedEle # FIXME 2b matchedEle and matchedPho are exclusive
     # a hadronic/fake photon is a reconstructed photon that does not fall within any of the above categories
-    isHadFake = ~matchedPho # FIXME 2b
+    isHadFake = ~(isGenPho | isHadPho | isMisIDele) # FIXME 2b
 
     # integer definition for the photon category axis
     # since false = 0 , true = 1, this only leaves the integer value of the category it falls into
@@ -260,6 +259,13 @@ class TTGammaProcessor(processor.ProcessorABC):
             ## book histograms for photon pt, eta, and charged hadron isolation
             "photon_pt": hist.Hist(
                 pt_axis,
+                phoCategory_axis,
+                lep_axis,
+                systematic_axis,
+                storage="weight",
+            ),
+            "photon_eta": hist.Hist(
+                eta_axis,
                 phoCategory_axis,
                 lep_axis,
                 systematic_axis,
@@ -528,13 +534,25 @@ class TTGammaProcessor(processor.ProcessorABC):
         # Find all possible combinations of 3 tight jets in the events
         # Hint: using the ak.combinations(array,n) method chooses n unique items from array.
         # More hints are in the twiki
-        # triJet = ak.combinations()  # FIXME 2a
+        triJet = ak.combinations(events.Jet, 3, fields=["first","second","third"])  # FIXME 2a
+                
         # Sum together jets from the triJet object and find its pt and mass
-        # triJetPt = ().pt  # FIXME 2a
-        # triJetMass = ().mass  # FIXME 2a
+        triJetPt= (triJet.first +triJet.second+ triJet.third).pt  # FIXME 2a
+        triJetMass= (triJet.first +triJet.second+ triJet.third).mass  # FIXME 2a
+        
         # define the M3 variable, the triJetMass of the combination with the highest triJetPt value
         # (ak.argmax and ak.firsts will be helpful here)
-        M3 = np.ones(len(events)) # FIXME 2a        
+        
+        trijet_find=  ak.argmax(triJetPt, axis=1, keepdims=True) 
+        # print(trijet_find)
+        # print(triJetMass[trijet_find],"hello")
+        
+        M3= ak.firsts(triJetMass[trijet_find])
+        # print(M3)
+      
+        # FIXME 2a 
+    
+        
         
         # For all the other event-level variables, we can form the variables from just
         # the leading (in pt) objects rather than form all combinations and arbitrate them
@@ -549,8 +567,10 @@ class TTGammaProcessor(processor.ProcessorABC):
         # define egammaMass, mass of leadingElectron and leadingPhoton system
         egammaMass  = (leadingElectron + leadingPhoton).mass
         # define mugammaMass analogously
+        
      
-        mugammaMass = leadingMuon.mass  # FIXME 2a
+        mugammaMass = (leadingPhoton +leadingMuon).mass # FIXME 2a
+        
         gammaMasses = {'electron': egammaMass, 'muon': mugammaMass }
 
         ###################
@@ -818,9 +838,11 @@ class TTGammaProcessor(processor.ProcessorABC):
                 # use the selection.all() method to select events passing
                 # the lepton selection, 4-jet 1-tag jet selection, and either the one-photon or loose-photon selections
                 phosel = selection.all(lepSel, "jetSel_4j1b", "onePho")
+                
                 phoselLoose = selection.all(
-                    lepSel, "jetSel_4j1b", "onePho"
+                    lepSel, "jetSel_4j1b", "loosePho",
                 )  # FIXME 3
+                
 
                 # fill photon_pt and photon_eta, using the leadingPhoton array, from events passing the phosel selection
                 # Make sure to apply the correct mask to the category, weight, and photon pt or eta
@@ -835,7 +857,12 @@ class TTGammaProcessor(processor.ProcessorABC):
                     weight=evtWeight[phosel],
                 )
 
-                # output["photon_eta"].fill()  # FIXME 3
+                output["photon_eta"].fill(
+                    eta=leadingPhoton.eta[phosel],
+                    category=phoCategory[phosel],
+                    lepFlavor=lepton,
+                    systematic=syst,
+                    weight=evtWeight[phosel],)  # FIXME 3
 
                 # fill photon_chIso histogram, using the loosePhotons array (photons passing all cuts, except the charged hadron isolation cuts)
                 output["photon_chIso"].fill(
@@ -846,14 +873,15 @@ class TTGammaProcessor(processor.ProcessorABC):
                     weight=evtWeight[phoselLoose],
                 )
 
-                # fill M3 histogram, for events passing the phosel selection
-#                output["M3"].fill(
-#                    M3=ak.flatten(M3[phosel]),
-#                    category=phoCategory[phosel],
-#                    lepFlavor=lepton,
-#                    systematic=syst,
-#                    weight=evtWeight[phosel],
-#                ) # FIXME 3
+                 #fill M3 histogram, for events passing the phosel selection
+                output["M3"].fill(
+                   M3=(M3[phosel]),
+                   category=phoCategory[phosel],
+                   lepFlavor=lepton,
+                   systematic=syst,
+                   weight=evtWeight[phosel],
+               ) 
+                # FIXME 3
 
             # use the selection.all() method to select events passing the eleSel or muSel selection,
             # and the 3-jet 0-btag selection, and have exactly one photon
@@ -861,9 +889,22 @@ class TTGammaProcessor(processor.ProcessorABC):
             phosel_3j0t = { 'electron': selection.all("eleSel", "jetSel_3j0b", "onePho"),
                             'muon': selection.all("muSel", "jetSel_3j0b", "onePho")
                            }
-
-#            for lepton in phosel_3j0t.keys():
-                # output["photon_lepton_mass_3j0t"].fill()  # FIXME 3
+           
+   
+            for lepton in phosel_3j0t.keys():
+                
+                output["photon_lepton_mass_3j0t"].fill(
+                        mass=gammaMasses[lepton[phosel_3j0t[lepton]],
+                        category=phoCategory[phosel_3j0t[lepton]],
+                        lepFlavor=lepton,
+                        systematic=syst,
+                        weight=evtWeight[phosel_3j0t[lepton]],
+                    )
+                    
+                
+                    
+                    
+                  # FIXME 3
 
         if shift_syst is None:
             output["EventCount"] = len(events)
