@@ -4,7 +4,7 @@ imax 1  number of channels
 jmax *  number of backgrounds
 kmax *  number of nuisance parameters (sources of systematic uncertainty)
 
-shapes * * ../RootFiles/M3_Output_dummy.root  $PROCESS $PROCESS_$SYSTEMATIC
+shapes * * ../RootFiles/MisID_Output_muon.root  $PROCESS $PROCESS_$SYSTEMATIC
 
 ------------
 # we have just one channel, in which we observe 0 events
