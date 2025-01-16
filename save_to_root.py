@@ -12,17 +12,17 @@ from ttgamma.utils.plotting import RebinHist, SetRangeHist, GroupBy, DictToHist
 # NOTE: your timestamps will differ!
 outputMC = accumulate(
     [
-        util.load("Outputs/output_MCOther_run20240103_184531.coffea"),
-        util.load("Outputs/output_MCSingleTop_run20240103_163758.coffea"),
-        util.load("Outputs/output_MCTTbar1l_run20240104_134125.coffea"),
-        util.load("Outputs/output_MCTTbar2l_run20240103_163030.coffea"),
-        util.load("Outputs/output_MCTTGamma_run20240103_155118.coffea"),
-        util.load("Outputs/output_MCWJets_run20240103_232549.coffea"),
-        util.load("Outputs/output_MCZJets_run20240103_171259.coffea"),
+        util.load("Outputs/output_MCOther_run20250116_145253.coffea"),
+        util.load("Outputs/output_MCSingleTop_run20250116_140132.coffea"),
+        util.load("Outputs/output_MCTTbar1l_run20250116_152509.coffea"),
+        util.load("Outputs/output_MCTTbar2l_run20250116_141127.coffea"),
+        util.load("Outputs/output_MCTTGamma_run20250116_104036.coffea"),
+        util.load("Outputs/output_MCWJets_run20250116_140758.coffea"),
+        util.load("Outputs/output_MCZJets_run20250116_143544.coffea"),
     ]
 )
 
-outputData = util.load("Outputs/output_Data_run20240104_171907.coffea")
+outputData = util.load("Outputs/output_Data_run20250116_123545.coffea")
 
 # following the definition in the processor categorizeGenPhoton() function
 # 1 * isGenPho + 2 * isMisIDele + 3 * isHadPho + 4 * isHadFake
