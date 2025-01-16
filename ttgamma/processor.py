@@ -881,12 +881,11 @@ class TTGammaProcessor(processor.ProcessorABC):
             for lepton in phosel_3j0t.keys():
                 
                 output["photon_lepton_mass_3j0t"].fill(
-                        mass=gammaMasses[lepton[phosel_3j0t[lepton]],
+                        mass=gammaMasses[lepton][phosel_3j0t[lepton]],
                         category=phoCategory[phosel_3j0t[lepton]],
                         lepFlavor=lepton,
                         systematic=syst,
-                        weight=evtWeight[phosel_3j0t[lepton]],
-                    )
+                        weight=evtWeight[phosel_3j0t[lepton]])
                     
                 
                     
