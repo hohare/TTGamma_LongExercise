@@ -139,7 +139,7 @@ def selectElectrons(events):
     # select loose electrons
     electronSelectLoose = (
         (events.Electron.pt > 15)
-        & (abs(events.Electron.eta) < 2.1)
+        & (abs(events.Electron.eta) < 2.4)
         & eleEtaGap
         & (events.Electron.cutBased >= 1)
         & elePassDXY
