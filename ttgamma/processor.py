@@ -534,7 +534,7 @@ class TTGammaProcessor(processor.ProcessorABC):
         # Find all possible combinations of 3 tight jets in the events
         # Hint: using the ak.combinations(array,n) method chooses n unique items from array.
         # More hints are in the twiki
-        triJet = ak.combinations(tightjet, 3, fields=["first","second","third"])  # FIXME 2a
+        triJet = ak.combinations(tightJet, 3, fields=["first","second","third"])  # FIXME 2a
                 
         # Sum together jets from the triJet object and find its pt and mass
         triJetPt= (triJet.first +triJet.second+ triJet.third).pt  # FIXME 2a
