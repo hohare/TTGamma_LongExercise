@@ -129,7 +129,7 @@ def selectElectrons(events):
 
     electronSelectTight = (
         (events.Electron.pt > 35)
-        & (abs(events.Electron.eta) < 2.4)
+        & (abs(events.Electron.eta) < 2.1)
         & (events.Electron.cutBased >= 4)
         & eleEtaGap
         & elePassDXY
@@ -139,7 +139,7 @@ def selectElectrons(events):
     # select loose electrons
     electronSelectLoose = (
         (events.Electron.pt > 15)
-        & (abs(events.Electron.eta) < 2.4)
+        & (abs(events.Electron.eta) < 2.1)
         & eleEtaGap
         & (events.Electron.cutBased >= 1)
         & elePassDXY
@@ -193,7 +193,7 @@ def selectPhotons(photons):
     tightPhotons = photons[photonSelect & photonID]  # FIXME 1a [Done]
     # select loosePhotons, the subset of photons passing the photonSelect cut and all photonID cuts
     # except the charged hadron isolation cut applied (photonID_NoChIso)
-    loosePhotons = photons[photonSelect & photonID & (photonID_NoChIso) ]  # FIXME 1a [Done]
+    loosePhotons = photons[photonSelect & photonID_NoChIso ]  # FIXME 1a [Done]
 
     return tightPhotons, loosePhotons
 
@@ -534,7 +534,7 @@ class TTGammaProcessor(processor.ProcessorABC):
         # Find all possible combinations of 3 tight jets in the events
         # Hint: using the ak.combinations(array,n) method chooses n unique items from array.
         # More hints are in the twiki
-        triJet = ak.combinations(events.Jet, 3, fields=["first","second","third"])  # FIXME 2a
+        triJet = ak.combinations(tightjet, 3, fields=["first","second","third"])  # FIXME 2a
                 
         # Sum together jets from the triJet object and find its pt and mass
         triJetPt= (triJet.first +triJet.second+ triJet.third).pt  # FIXME 2a
